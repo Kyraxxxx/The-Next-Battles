@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Next Battle - Roblox Tournament</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&display=swap" rel="stylesheet">
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+</head>
+<body>
+    <div id="app">
+        <!-- TELA DE LOGIN -->
+        <section id="login-screen" class="active">
+            <div class="login-container">
+                <div class="glass-card login-card">
+                    <div class="logo-area">
+                        <h1>TNB</h1>
+                        <p>The Next Battle</p>
+                    </div>
+                    <form id="login-form" onsubmit="handleLogin(event)">
+                        <div class="input-group">
+                            <label>Usuário</label>
+                            <input type="text" id="username" placeholder="Seu nome no Discord" required>
+                        </div>
+                        <div class="input-group">
+                            <label>Senha</label>
+                            <input type="password" id="password" placeholder="Sua senha secreta" required>
+                        </div>
+                        <button type="submit" class="btn-primary">ENTRAR</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- TELA DE BEM-VINDO (RESTAURADA) -->
+        <section id="welcome-animation" class="hidden">
+            <div class="welcome-content">
+                <h1 class="animate-text">Bem Vindo a The Next Battle</h1>
+            </div>
+        </section>
+
+        <!-- DASHBOARD PRINCIPAL -->
+        <section id="dashboard" class="hidden">
+            <nav class="sidebar">
+                <div class="sidebar-header">
+                    <h2>TNB</h2>
+                </div>
+                
+                <ul class="nav-links">
+                    <li id="admin-link" onclick="handleAdminClick(this)" class="staff-btn"><i class="fas fa-user-shield"></i> PAINEL STAFF</li>
+                    <li class="active" data-target="rules-section" onclick="switchTab(this, 'rules-section')"><i class="fas fa-scroll"></i> Regras</li>
+                    <li data-target="ranking-section" onclick="switchTab(this, 'ranking-section')"><i class="fas fa-trophy"></i> Rankings</li>
+                    <li data-target="gifts-section" onclick="switchTab(this, 'gifts-section')"><i class="fas fa-gift"></i> Meus Gifts</li>
+                    <li data-target="staff-list-section" onclick="switchTab(this, 'staff-list-section')"><i class="fas fa-users"></i> Staffs</li>
+                    <li data-target="request-gift-section" onclick="switchTab(this, 'request-gift-section')"><i class="fas fa-paper-plane"></i> Pedir Gift</li>
+                </ul>
+                <div class="sidebar-footer">
+                    <button id="logout-btn" onclick="handleLogout()"><i class="fas fa-sign-out-alt"></i> Sair</button>
+                </div>
+            </nav>
+
+            <main class="content-area">
+                <!-- REGRAS -->
+                <div id="rules-section" class="tab-content active">
+                    <div class="glass-card main-card">
+                        <div class="section-header">
+                            <span class="icon-box"><i class="fas fa-scroll"></i></span>
+                            <h1>Regras do Servidor</h1>
+                            <p>Respeite para ser respeitado.</p>
+                        </div>
+                        <div class="rules-grid">
+                            <div class="rule-item">
+                                <span class="rule-num">1</span>
+                                <h3>Respeito Mútuo</h3>
+                                <p>A base da nossa comunidade é o respeito. Ofensas graves, preconceito ou bullying resultarão em banimento imediato.</p>
+                            </div>
+                            <div class="rule-item">
+                                <span class="rule-num">2</span>
+                                <h3>Sem Spam</h3>
+                                <p>Proibido flood ou divulgação sem autorização. Mantenha os canais limpos.</p>
+                            </div>
+                            <div class="rule-item">
+                                <span class="rule-num">3</span>
+                                <h3>Conteúdo Seguro</h3>
+                                <p>Estritamente proibido conteúdo +18 ou ilegal. Ambiente para todos.</p>
+                            </div>
+                            <div class="rule-item">
+                                <span class="rule-num">4</span>
+                                <h3>Fair Play</h3>
+                                <p>Hacks ou cheats em torneios = Banimento permanente e perda de prêmios.</p>
+                            </div>
+                            <div class="rule-item">
+                                <span class="rule-num">5</span>
+                                <h3>Voz Organizada</h3>
+                                <p>Sem gritos ou som estourado nas calls. Respeite os ouvidos alheios.</p>
+                            </div>
+                            <div class="rule-item">
+                                <span class="rule-num">6</span>
+                                <h3>Staff e Ordem</h3>
+                                <p>Decisões da Staff são soberanas. Contestações apenas via Ticket.</p>
+                            </div>
+                        </div>
+                        <div class="discord-invite">
+                            <a href="https://discord.gg/FaFe7a9BgY" class="btn-discord" target="_blank"><i class="fab fa-discord"></i> ENTRAR NO DISCORD</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RANKINGS -->
+                <div id="ranking-section" class="tab-content">
+                    <div class="glass-card">
+                        <div class="section-header">
+                            <h1>🏆 Rankings de Elite</h1>
+                            <p>Os maiores vencedores do servidor.</p>
+                        </div>
+                        <div class="table-container">
+                            <table class="ranking-table">
+                                <thead>
+                                    <tr>
+                                        <th>Posição</th>
+                                        <th>Jogador</th>
+                                        <th>Vitórias</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ranking-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LISTA DE STAFFS -->
+                <div id="staff-list-section" class="tab-content">
+                    <div class="glass-card">
+                        <h1>👥 Nossa Equipe</h1>
+                        <div id="staffs-display-grid" class="staffs-grid"></div>
+                    </div>
+                </div>
+
+                <!-- PEDIR GIFT -->
+                <div id="request-gift-section" class="tab-content">
+                    <div class="glass-card">
+                        <h1>📩 Enviar Pedido de Gift Card</h1>
+                        <form onsubmit="handleRequestGift(event)" class="request-form">
+                            <div class="input-group">
+                                <label>Staff Alvo</label>
+                                <select id="request-staff-select" required></select>
+                            </div>
+                            <div class="input-group">
+                                <label>Mensagem</label>
+                                <textarea id="request-message" placeholder="Ex: Ganhei o torneio!" required></textarea>
+                            </div>
+                            <button type="submit" class="btn-primary">ENVIAR PEDIDO</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- MEUS GIFTS -->
+                <div id="gifts-section" class="tab-content">
+                    <div class="glass-card">
+                        <h1>🎁 Meus Gifts</h1>
+                        <div id="gifts-container" class="gifts-grid"></div>
+                    </div>
+                </div>
+
+                <!-- ADMIN PANEL -->
+                <div id="admin-section" class="tab-content">
+                    <div class="glass-card">
+                        <h1>🛡️ Central de Comando</h1>
+                        <div class="admin-dashboard-grid">
+                            <div class="admin-card">
+                                <h2>🔔 Pedidos de Gift</h2>
+                                <div id="admin-notifications" class="notifications-list"></div>
+                            </div>
+                            <div class="admin-card full-width">
+                                <h2>👥 Gerenciar Jogadores</h2>
+                                <div class="table-container">
+                                    <table class="admin-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Jogador</th>
+                                                <th>Cargo</th>
+                                                <th>Ranking</th>
+                                                <th>Cargos</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="admin-user-list"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="admin-card">
+                                <h2>🎁 Enviar Gift</h2>
+                                <form onsubmit="handleSendGift(event)">
+                                    <select id="gift-target-user" required></select>
+                                    <input type="text" id="gift-code" placeholder="Código" required>
+                                    <button type="submit" class="btn-primary">ENVIAR</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </section>
+
+        <!-- MODAL DE SENHA -->
+        <div id="custom-modal" class="modal-overlay hidden">
+            <div class="modal-content glass-card">
+                <h2>Segurança TNB</h2>
+                <p>Digite o PIN de acesso:</p>
+                <input type="password" id="modal-input" placeholder="****">
+                <div class="modal-buttons">
+                    <button onclick="confirmModal()" class="btn-primary">Confirmar</button>
+                    <button onclick="closeModal()" class="btn-secondary">Cancelar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- NOTIFICAÇÃO TOAST -->
+        <div id="toast" class="toast hidden"></div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
