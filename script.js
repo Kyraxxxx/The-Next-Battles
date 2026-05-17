@@ -49,11 +49,13 @@ function startRealtimeSync() {
         const data = snapshot.val();
         state.users = data ? Object.values(data).map(u => ({...u, gifts: u.gifts || []})) : [];
         
-        if (state.currentUser && !state.users.find(u => u.name === state.currentUser.name)) {
-            window.handleLogout();
-        } else if (state.currentUser) {
-            state.currentUser = state.users.find(u => u.name === state.currentUser.name);
-            localStorage.setItem('tnb_user', JSON.stringify(state.currentUser));
+        // Atualiza os dados do usuário atual (vitórias, gifts, etc) sem deslogar forçado
+        if (state.currentUser) {
+            const updatedMe = state.users.find(u => u.name === state.currentUser.name);
+            if (updatedMe) {
+                state.currentUser = updatedMe;
+                localStorage.setItem('tnb_user', JSON.stringify(state.currentUser));
+            }
         }
         
         updateUI();
