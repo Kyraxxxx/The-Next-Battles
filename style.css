@@ -25,7 +25,7 @@
 }
 
 body {
-    background: url('assets/bg.png') no-repeat center center fixed;
+    background: url('bg.png') no-repeat center center fixed;
     background-size: cover;
     color: var(--text);
     overflow: hidden;
@@ -33,7 +33,7 @@ body {
 }
 
 body.logged-in {
-    background: url('assets/bg_dashboard.png') no-repeat center center fixed;
+    background: url('bg_dashboard.png') no-repeat center center fixed;
     background-size: cover;
 }
 
