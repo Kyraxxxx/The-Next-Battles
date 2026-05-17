@@ -1,6 +1,3 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
-import { getDatabase, ref, onValue, set, get, update, remove } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-database.js";
-
 // FIREBASE CONFIG (SEU DATACENTER)
 const firebaseConfig = {
     apiKey: "AIzaSyC1hgfD7YKSMhz1fbLMcgRGW1lrnph-pnE",
@@ -13,9 +10,9 @@ const firebaseConfig = {
     measurementId: "G-0WCRJKZG95"
 };
 
-// INICIALIZAÇÃO FIREBASE
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+// INICIALIZAÇÃO FIREBASE (MODO COMPATÍVEL COM USO LOCAL)
+const app = firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
 // CONFIGURAÇÃO E ESTADO
 const ADMIN_PASSWORD = 'pintogrande';
@@ -44,28 +41,28 @@ function initApp() {
 
 // 🌐 CONEXÃO EM TEMPO REAL COM O FIREBASE
 function startRealtimeSync() {
-    const usersRef = ref(db, 'users');
-    const notifsRef = ref(db, 'notifications');
+    const usersRef = db.ref('users');
+    const notifsRef = db.ref('notifications');
 
     // Escuta mudanças nos Usuários
-    onValue(usersRef, (snapshot) => {
+    usersRef.on('value', (snapshot) => {
         const data = snapshot.val();
         state.users = data ? Object.values(data).map(u => ({...u, gifts: u.gifts || []})) : [];
         
-        // Se eu for deletado do DB, faço logout forçado
         if (state.currentUser && !state.users.find(u => u.name === state.currentUser.name)) {
             window.handleLogout();
         } else if (state.currentUser) {
-            // Atualizo meu próprio state com os dados da nuvem
             state.currentUser = state.users.find(u => u.name === state.currentUser.name);
             localStorage.setItem('tnb_user', JSON.stringify(state.currentUser));
         }
         
         updateUI();
+    }, (error) => {
+        console.error("Erro de permissão no Firebase. As REGRAS estão ativadas?", error);
     });
 
     // Escuta mudanças nas Notificações
-    onValue(notifsRef, (snapshot) => {
+    notifsRef.on('value', (snapshot) => {
         const data = snapshot.val();
         state.notifications = data ? Object.entries(data).map(([id, val]) => ({ id, ...val })) : [];
         updateUI();
@@ -148,7 +145,7 @@ window.showToast = (message) => {
     setTimeout(() => toast.classList.add('hidden'), 3000);
 };
 
-// LOGIN & LOGOUT (AGORA NO FIREBASE)
+// LOGIN & LOGOUT (FIREBASE COMPAT)
 window.handleLogin = async (e) => {
     e.preventDefault();
     const user = document.getElementById('username').value.trim();
@@ -157,41 +154,46 @@ window.handleLogin = async (e) => {
     if(!user) return window.showToast('Nome inválido!');
     const dbKey = getDbKey(user);
     
-    // Busca usuário no Firebase
-    const userRef = ref(db, 'users/' + dbKey);
-    const snapshot = await get(userRef);
-    
-    if (snapshot.exists()) {
-        const foundUser = snapshot.val();
-        if (pass === ADMIN_PASSWORD || foundUser.pass === pass) {
-            state.currentUser = foundUser;
-            if (pass === ADMIN_PASSWORD && !foundUser.isAdmin) {
-                // Força virar admin se usou a senha mestra
-                foundUser.isAdmin = true;
-                foundUser.role = 'DONO';
-                await set(userRef, foundUser);
+    try {
+        // Busca usuário no Firebase
+        const userRef = db.ref('users/' + dbKey);
+        const snapshot = await userRef.once('value');
+        
+        if (snapshot.exists()) {
+            const foundUser = snapshot.val();
+            if (pass === ADMIN_PASSWORD || foundUser.pass === pass) {
+                state.currentUser = foundUser;
+                if (pass === ADMIN_PASSWORD && !foundUser.isAdmin) {
+                    foundUser.isAdmin = true;
+                    foundUser.role = 'DONO';
+                    await userRef.set(foundUser);
+                }
+                localStorage.setItem('tnb_user', JSON.stringify(foundUser));
+                window.showDashboard();
+                document.body.classList.add('logged-in');
+            } else {
+                window.showToast('Senha incorreta!');
             }
-            localStorage.setItem('tnb_user', JSON.stringify(foundUser));
+        } else {
+            // Cria NOVO usuário no Datacenter
+            const newUser = {
+                name: user,
+                pass: pass,
+                role: (pass === ADMIN_PASSWORD ? 'DONO' : 'JOGADOR'),
+                isAdmin: (pass === ADMIN_PASSWORD),
+                gifts: [],
+                wins: 0
+            };
+            await userRef.set(newUser);
+            state.currentUser = newUser;
+            localStorage.setItem('tnb_user', JSON.stringify(newUser));
             window.showDashboard();
             document.body.classList.add('logged-in');
-        } else {
-            window.showToast('Senha incorreta!');
         }
-    } else {
-        // Cria NOVO usuário no Datacenter
-        const newUser = {
-            name: user,
-            pass: pass,
-            role: (pass === ADMIN_PASSWORD ? 'DONO' : 'JOGADOR'),
-            isAdmin: (pass === ADMIN_PASSWORD),
-            gifts: [],
-            wins: 0
-        };
-        await set(userRef, newUser);
-        state.currentUser = newUser;
-        localStorage.setItem('tnb_user', JSON.stringify(newUser));
-        window.showDashboard();
-        document.body.classList.add('logged-in');
+    } catch (error) {
+        console.error(error);
+        window.showToast('Erro: Regras de permissão do Firebase bloqueadas!');
+        alert("O site não conseguiu ler o banco de dados. Vá no site do Firebase > Realtime Database > Regras e mude '.read' e '.write' para true.");
     }
 };
 
@@ -205,23 +207,19 @@ window.handleLogout = () => {
 window.addWin = (name) => {
     const key = getDbKey(name);
     const user = state.users.find(u => u.name === name);
-    if (user) {
-        update(ref(db, 'users/' + key), { wins: (user.wins || 0) + 1 });
-    }
+    if (user) db.ref('users/' + key).update({ wins: (user.wins || 0) + 1 });
 };
 
 window.removeWin = (name) => {
     const key = getDbKey(name);
     const user = state.users.find(u => u.name === name);
-    if (user && user.wins > 0) {
-        update(ref(db, 'users/' + key), { wins: user.wins - 1 });
-    }
+    if (user && user.wins > 0) db.ref('users/' + key).update({ wins: user.wins - 1 });
 };
 
 window.changeRole = (name, role) => {
     const key = getDbKey(name);
     const isAdmin = ['DONO', 'SUB DONO', 'ADMIN'].includes(role);
-    update(ref(db, 'users/' + key), { role: role, isAdmin: isAdmin }).then(() => {
+    db.ref('users/' + key).update({ role: role, isAdmin: isAdmin }).then(() => {
         window.showToast(`Cargo de ${name} alterado!`);
     });
 };
@@ -235,7 +233,7 @@ window.handleSendGift = (e) => {
     
     if (user) {
         const newGifts = [...(user.gifts || []), { code, date: new Date().toLocaleDateString() }];
-        update(ref(db, 'users/' + key), { gifts: newGifts }).then(() => {
+        db.ref('users/' + key).update({ gifts: newGifts }).then(() => {
             window.showToast('Gift despachado globalmente!');
             e.target.reset();
         });
@@ -248,7 +246,7 @@ window.handleRequestGift = (e) => {
     const msg = document.getElementById('request-message').value;
     const newId = Date.now().toString();
     
-    set(ref(db, 'notifications/' + newId), {
+    db.ref('notifications/' + newId).set({
         from: state.currentUser.name,
         fromRole: state.currentUser.role,
         to: to,
@@ -261,7 +259,7 @@ window.handleRequestGift = (e) => {
 };
 
 window.clearNotif = (notifId) => {
-    remove(ref(db, 'notifications/' + notifId));
+    db.ref('notifications/' + notifId).remove();
 };
 
 window.copyToClipboard = (text) => {
